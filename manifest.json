@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "HackBar",
+  "description": "A DevTools panel for editing and sending HTTP requests.",
+  "version": "0.1.0",
+  "devtools_page": "devtools.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

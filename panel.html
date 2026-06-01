@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HackBar</title>
+    <link rel="stylesheet" href="panel.css">
+  </head>
+  <body>
+    <main class="app">
+      <nav class="menu-bar" aria-label="HackBar tools">
+        <details class="menu">
+          <summary>Encryption</summary>
+          <div class="menu-popover">
+            <button type="button" data-tool="base64-encode">Base64 Encode</button>
+            <button type="button" data-tool="base64-decode">Base64 Decode</button>
+          </div>
+        </details>
+        <details class="menu">
+          <summary>Encoding</summary>
+          <div class="menu-popover">
+            <button type="button" data-tool="url-encode">URL Encode</button>
+            <button type="button" data-tool="url-decode">URL Decode</button>
+          </div>
+        </details>
+        <details class="menu">
+          <summary>SQL</summary>
+          <div class="menu-popover">
+            <button type="button" data-insert="'">Quote</button>
+            <button type="button" data-insert="' OR '1'='1">Boolean test</button>
+          </div>
+        </details>
+        <details class="menu">
+          <summary>XSS</summary>
+          <div class="menu-popover">
+            <button type="button" data-insert="<script>alert(1)</script>">Alert</button>
+            <button type="button" data-insert="&quot;><img src=x onerror=alert(1)>">Image error</button>
+          </div>
+        </details>
+        <details class="menu">
+          <summary>Other</summary>
+          <div class="menu-popover">
+            <button type="button" data-insert="../">Path segment</button>
+            <button type="button" data-insert="{{7*7}}">Template test</button>
+          </div>
+        </details>
+        <span id="status" class="status" role="status">Ready</span>
+      </nav>
+
+      <section class="classic-panel" aria-label="Request editor">
+        <div class="action-column">
+          <button id="loadUrl" type="button">Load URL</button>
+          <button id="splitUrl" type="button">Split URL</button>
+          <button id="send" type="button">Execute</button>
+        </div>
+
+        <div class="request-column">
+          <textarea id="url" class="url-box" spellcheck="false" autocomplete="off" aria-label="URL"></textarea>
+
+          <div class="option-row" aria-label="Request options">
+            <label><input id="postData" type="checkbox"> Post data</label>
+            <label><input id="refererToggle" type="checkbox"> Referer</label>
+            <label><input id="userAgentToggle" type="checkbox"> User Agent</label>
+            <label><input id="cookiesToggle" type="checkbox"> Cookies</label>
+            <button id="clearAll" class="link-button" type="button">Clear All</button>
+          </div>
+
+          <div class="extra-fields" aria-label="Optional request headers">
+            <label class="extra-field" data-extra-field="referer">
+              <span>Referer</span>
+              <textarea id="refererValue" spellcheck="false" autocomplete="off"></textarea>
+            </label>
+            <label class="extra-field" data-extra-field="userAgent">
+              <span>User Agent</span>
+              <textarea id="userAgentValue" spellcheck="false" autocomplete="off"></textarea>
+            </label>
+            <label class="extra-field" data-extra-field="cookies">
+              <span>Cookies</span>
+              <textarea id="cookiesValue" spellcheck="false" autocomplete="off" placeholder="name=value; other=value"></textarea>
+            </label>
+          </div>
+
+          <textarea id="body" class="post-box" spellcheck="false" aria-label="Post data"></textarea>
+
+          <details class="advanced">
+            <summary>Headers</summary>
+            <textarea id="headers" spellcheck="false" placeholder="Accept: application/json"></textarea>
+          </details>
+        </div>
+      </section>
+
+      <section class="response" aria-label="Response viewer">
+        <div class="response-header">
+          <div class="response-meta">
+            <span id="responseStatus">No response</span>
+            <span id="responseTime"></span>
+            <span id="responseSize"></span>
+          </div>
+          <div class="response-actions">
+            <button id="toggleResponse" type="button" class="toggle-response" aria-expanded="true">Collapse</button>
+            <div class="response-tabs" role="tablist" aria-label="Response views">
+              <button id="responseBodyTab" type="button" data-response-tab="body" aria-selected="true">Body</button>
+              <button id="responseHeadersTab" type="button" data-response-tab="headers" aria-selected="false">Headers</button>
+            </div>
+          </div>
+        </div>
+        <div class="response-panels">
+          <label class="field response-panel is-active" data-response-panel="body">
+            <span>Response Body</span>
+            <textarea id="responseBody" readonly spellcheck="false"></textarea>
+          </label>
+          <label class="field response-panel" data-response-panel="headers">
+            <span>Response Headers</span>
+            <textarea id="responseHeaders" readonly spellcheck="false"></textarea>
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <script src="panel.js"></script>
+  </body>
+</html>
