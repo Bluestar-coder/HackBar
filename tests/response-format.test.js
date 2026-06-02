@@ -1,5 +1,5 @@
 const assert = require("node:assert");
-const { formatResponseBody, highlightResponseBody } = require("../response-format");
+const { formatResponseBody, highlightResponseBody, wrapLongLines } = require("../response-format");
 
 const json = formatResponseBody('{"name":"HackBar","items":[1,2]}', {
   "content-type": "application/json"
@@ -33,6 +33,14 @@ const highlightedHtml = highlightResponseBody('<script>alert("x")</script>', "ht
 assert.match(highlightedHtml, /&lt;<span class="syntax-tag">script<\/span>&gt;/);
 assert.match(highlightedHtml, /&lt;\/<span class="syntax-tag">script<\/span>&gt;/);
 assert.doesNotMatch(highlightedHtml, /<script>/);
+
+const highlightedLink = highlightResponseBody('<a href="https://example.test/?a=1&b=2">link</a>', "html");
+assert.match(highlightedLink, /<span class="syntax-attr">href<\/span>=<span class="syntax-string">&quot;https:\/\/example\.test\/\?a=1&amp;b=2&quot;<\/span>/);
+assert.match(highlightedLink, /&lt;<span class="syntax-tag">a<\/span>/);
+
+const wrapped = wrapLongLines(`  <script>${"a".repeat(700)}</script>`, 120);
+assert.ok(wrapped.split("\n").length > 1);
+assert.ok(Math.max(...wrapped.split("\n").map((line) => line.length)) <= 140);
 
 const highlightedText = highlightResponseBody("a < b", "text");
 assert.strictEqual(highlightedText, "a &lt; b");

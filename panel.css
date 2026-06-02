@@ -376,7 +376,7 @@ textarea {
 
 .field.response-panel.is-active {
   display: grid;
-  grid-template-rows: auto 0 minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
@@ -418,7 +418,8 @@ textarea {
   font-size: 13px;
   line-height: 1.45;
   overflow: auto;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   tab-size: 2;
 }
 
@@ -471,7 +472,7 @@ textarea {
 
 @media (max-height: 560px) and (min-aspect-ratio: 8 / 5) {
   .app {
-    grid-template-rows: auto minmax(0, auto) auto;
+    grid-template-rows: auto minmax(0, auto) minmax(0, 1fr);
   }
 
   .menu-bar {

@@ -27,7 +27,7 @@
     if (isHtml(contentType, text)) {
       return {
         type: "html",
-        body: formatHtml(text)
+        body: wrapLongLines(formatHtml(text))
       };
     }
 
@@ -130,10 +130,69 @@
   }
 
   function highlightHtml(text) {
-    return escapeHtml(text).replace(/&lt;(\/?)([a-zA-Z][\w:-]*)([^&]*?)(&gt;)/g, (match, slash, tagName, rest, close) => {
+    return escapeHtml(text)
+      .split("\n")
+      .map(highlightHtmlLine)
+      .join("\n");
+  }
+
+  function highlightHtmlLine(line) {
+    if (/^\s*&lt;!--/.test(line)) {
+      return line.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="syntax-comment">$1</span>');
+    }
+
+    return line.replace(/&lt;(\/?)([a-zA-Z][\w:-]*)([\s\S]*?)(&gt;)/g, (_match, slash, tagName, rest, close) => {
       const highlightedRest = rest.replace(/([\w:-]+)(=)(&quot;.*?&quot;|'.*?'|[^\s&]+)/g, '<span class="syntax-attr">$1</span>$2<span class="syntax-string">$3</span>');
       return `&lt;${slash}<span class="syntax-tag">${tagName}</span>${highlightedRest}${close}`;
-    }).replace(/&lt;!--([\s\S]*?)--&gt;/g, '<span class="syntax-comment">&lt;!--$1--&gt;</span>');
+    });
+  }
+
+  function wrapLongLines(text, maxLength) {
+    const limit = maxLength || 320;
+    return String(text || "")
+      .split("\n")
+      .flatMap((line) => splitLongLine(line, limit))
+      .join("\n");
+  }
+
+  function splitLongLine(line, limit) {
+    if (line.length <= limit) {
+      return [line];
+    }
+
+    const indent = line.match(/^\s*/)[0];
+    const continuationIndent = `${indent}  `;
+    const chunks = [];
+    let remaining = line;
+
+    while (remaining.length > limit) {
+      let splitAt = findWrapPosition(remaining, limit, continuationIndent.length + 16);
+      if (splitAt <= continuationIndent.length) {
+        splitAt = limit;
+      }
+
+      chunks.push(remaining.slice(0, splitAt).trimEnd());
+      remaining = `${continuationIndent}${remaining.slice(splitAt).trimStart()}`;
+    }
+
+    if (remaining) {
+      chunks.push(remaining);
+    }
+
+    return chunks;
+  }
+
+  function findWrapPosition(line, limit, minimum) {
+    const candidates = [";", ",", " ", "><", "&amp;"];
+    let best = -1;
+    candidates.forEach((candidate) => {
+      const index = line.lastIndexOf(candidate, limit);
+      if (index >= minimum && index > best) {
+        best = index + candidate.length;
+      }
+    });
+
+    return best;
   }
 
   function escapeHtml(text) {
@@ -148,6 +207,7 @@
     formatResponseBody,
     formatHtml,
     highlightResponseBody,
+    wrapLongLines,
     escapeHtml
   };
 });
