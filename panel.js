@@ -7,6 +7,7 @@ const elements = {
   refererToggle: document.querySelector("#refererToggle"),
   userAgentToggle: document.querySelector("#userAgentToggle"),
   cookiesToggle: document.querySelector("#cookiesToggle"),
+  updatePage: document.querySelector("#updatePage"),
   refererValue: document.querySelector("#refererValue"),
   userAgentValue: document.querySelector("#userAgentValue"),
   cookiesValue: document.querySelector("#cookiesValue"),
@@ -139,6 +140,7 @@ async function sendRequest() {
     }
 
     renderResponse(response.result);
+    updateInspectedPage(payload);
     setStatus("Request complete", "ok");
   } catch (error) {
     renderError(error);
@@ -150,7 +152,7 @@ async function sendRequest() {
 
 function buildPayload() {
   const method = elements.postData.checked ? "POST" : "GET";
-  const url = elements.url.value.trim();
+  const url = normalizeSplitUrlInput(elements.url.value);
 
   if (!url) {
     throw new Error("URL is required");
@@ -383,6 +385,7 @@ function clearAll() {
   elements.refererToggle.checked = false;
   elements.userAgentToggle.checked = false;
   elements.cookiesToggle.checked = false;
+  elements.updatePage.checked = false;
   elements.refererValue.value = "";
   elements.userAgentValue.value = "";
   elements.cookiesValue.value = "";
@@ -461,6 +464,27 @@ function setStatus(message, tone) {
   elements.status.textContent = message;
   elements.status.classList.toggle("is-error", tone === "error");
   elements.status.classList.toggle("is-ok", tone === "ok");
+}
+
+function updateInspectedPage(payload) {
+  if (!elements.updatePage.checked) {
+    return;
+  }
+
+  if (!globalThis.chrome || !chrome.devtools || !chrome.devtools.inspectedWindow) {
+    setStatus("Open inside Chrome DevTools to update page", "error");
+    return;
+  }
+
+  const script = HackBarPageUpdate.createPageUpdateScript(payload);
+  chrome.devtools.inspectedWindow.eval(script, (result, exceptionInfo) => {
+    if (exceptionInfo && exceptionInfo.isException) {
+      setStatus(exceptionInfo.value || "Unable to update inspected page", "error");
+      return;
+    }
+
+    setStatus("Request complete; page updated", "ok");
+  });
 }
 
 const responseMetaObserver = new MutationObserver(syncResponseMetaSeparators);
