@@ -27,6 +27,8 @@ const elements = {
   responseBody: document.querySelector("#responseBody"),
   responseHeadersView: document.querySelector("#responseHeadersView"),
   responseBodyView: document.querySelector("#responseBodyView"),
+  responseBodyTree: document.querySelector("#responseBodyTree"),
+  bodyViewTabs: Array.from(document.querySelectorAll("[data-body-view]")),
   response: document.querySelector(".response"),
   toggleResponse: document.querySelector("#toggleResponse"),
   responseTabs: Array.from(document.querySelectorAll("[data-response-tab]")),
@@ -37,6 +39,7 @@ const elements = {
 };
 
 let lastTextTarget = elements.body;
+let bodyViewMode = "tree";
 const textTargets = [elements.url, elements.headers, elements.body];
 
 elements.loadUrl.addEventListener("click", loadInspectedUrl);
@@ -73,6 +76,15 @@ elements.menus.forEach((menu) => {
 });
 elements.responseTabs.forEach((button) => {
   button.addEventListener("click", () => setResponseTab(button.dataset.responseTab));
+});
+elements.bodyViewTabs.forEach((button) => {
+  button.addEventListener("click", () => setBodyView(button.dataset.bodyView));
+});
+elements.responseBodyTree.addEventListener("click", (event) => {
+  const toggle = event.target.closest("[data-tree-toggle]");
+  if (toggle) {
+    toggleTreeNode(toggle);
+  }
 });
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".menu")) {
@@ -232,6 +244,7 @@ function renderResponse(result) {
   elements.responseFormat.textContent = `Format: ${formatted.type.toUpperCase()}`;
   elements.responseBody.value = formatted.body;
   elements.responseBodyView.innerHTML = HackBarResponseFormat.highlightResponseBody(formatted.body, formatted.type);
+  renderBodyTree(result.body, formatted.type);
   elements.responseHeadersView.innerHTML = highlightHeaders(elements.responseHeaders.value);
   syncResponseMetaSeparators();
   setResponseTab("body");
@@ -246,7 +259,9 @@ function renderError(error) {
   elements.responseHeaders.value = "";
   elements.responseBody.value = error && error.stack ? error.stack : String(error);
   elements.responseHeadersView.innerHTML = "";
+  elements.responseBodyTree.innerHTML = "";
   elements.responseBodyView.innerHTML = HackBarResponseFormat.highlightResponseBody(elements.responseBody.value, "text");
+  setBodyView("raw");
   syncResponseMetaSeparators();
   setResponseTab("body");
 }
@@ -259,7 +274,9 @@ function clearResponse() {
   elements.responseHeaders.value = "";
   elements.responseBody.value = "";
   elements.responseHeadersView.innerHTML = "";
+  elements.responseBodyTree.innerHTML = "";
   elements.responseBodyView.innerHTML = "";
+  setBodyView("tree");
   syncResponseMetaSeparators();
 }
 
@@ -271,6 +288,55 @@ function formatHeaders(headers) {
 
 function highlightHeaders(headersText) {
   return HackBarResponseFormat.escapeHtml(headersText).replace(/^([^:\n]+):/gm, '<span class="syntax-key">$1</span>:');
+}
+
+function renderBodyTree(rawBody, type) {
+  elements.responseBodyTree.innerHTML = "";
+
+  try {
+    let tree;
+    if (type === "json") {
+      tree = HackBarResponseTree.buildJsonTree(rawBody);
+    } else if (type === "html") {
+      tree = HackBarResponseTree.buildHtmlTree(rawBody);
+    } else {
+      throw new Error("Tree view is only available for HTML and JSON");
+    }
+
+    elements.responseBodyTree.innerHTML = HackBarResponseTree.renderTree(tree, { defaultDepth: 2 });
+    setBodyView("tree");
+  } catch (_error) {
+    setBodyView("raw");
+  }
+}
+
+function setBodyView(viewName) {
+  const hasTree = Boolean(elements.responseBodyTree.innerHTML.trim());
+  bodyViewMode = viewName === "tree" && hasTree ? "tree" : "raw";
+  elements.bodyViewTabs.forEach((button) => {
+    const selected = button.dataset.bodyView === bodyViewMode;
+    button.setAttribute("aria-selected", String(selected));
+    button.disabled = button.dataset.bodyView === "tree" && !hasTree;
+  });
+  elements.responseBodyTree.classList.toggle("is-hidden", bodyViewMode !== "tree");
+  elements.responseBodyView.classList.toggle("is-hidden", bodyViewMode !== "raw");
+}
+
+function toggleTreeNode(toggle) {
+  const node = toggle.closest("[data-tree-node]");
+  if (!node) {
+    return;
+  }
+
+  const children = node.querySelector(":scope > .tree-children");
+  if (!children) {
+    return;
+  }
+
+  const expanded = toggle.getAttribute("aria-expanded") !== "true";
+  toggle.setAttribute("aria-expanded", String(expanded));
+  node.setAttribute("aria-expanded", String(expanded));
+  children.hidden = !expanded;
 }
 
 function formatSize(chars) {

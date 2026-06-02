@@ -107,22 +107,30 @@
           </div>
         </div>
         <div class="response-panels">
-          <label class="field response-panel is-active" data-response-panel="body">
-            <span>Response Body</span>
+          <div class="field response-panel is-active" data-response-panel="body">
+            <div class="response-panel-title">
+              <span>Response Body</span>
+              <span class="body-view-tabs" role="tablist" aria-label="Body views">
+                <button id="bodyTreeView" type="button" data-body-view="tree" aria-selected="true">Tree</button>
+                <button id="bodyRawView" type="button" data-body-view="raw" aria-selected="false">Raw</button>
+              </span>
+            </div>
             <textarea id="responseBody" readonly spellcheck="false"></textarea>
+            <div id="responseBodyTree" class="response-tree" role="region" aria-label="Response body tree"></div>
             <pre id="responseBodyView" class="response-code" aria-label="Highlighted response body"></pre>
-          </label>
-          <label class="field response-panel" data-response-panel="headers">
+          </div>
+          <div class="field response-panel" data-response-panel="headers">
             <span>Response Headers</span>
             <textarea id="responseHeaders" readonly spellcheck="false"></textarea>
             <pre id="responseHeadersView" class="response-code" aria-label="Highlighted response headers"></pre>
-          </label>
+          </div>
         </div>
       </section>
     </main>
 
     <script src="page-update.js"></script>
     <script src="response-format.js"></script>
+    <script src="response-tree.js"></script>
     <script src="panel.js"></script>
   </body>
 </html>

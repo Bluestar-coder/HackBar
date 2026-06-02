@@ -387,9 +387,45 @@ textarea {
   min-width: 0;
 }
 
-.field span {
+.field > span,
+.field > .response-panel-title {
   color: var(--muted);
   font-size: 12px;
+}
+
+.response-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.body-view-tabs {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.body-view-tabs button {
+  min-height: 22px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: #f7f7f7;
+  padding: 0 9px;
+  font-size: 12px;
+}
+
+.body-view-tabs button:last-child {
+  border-right: 0;
+}
+
+.body-view-tabs button[aria-selected="true"] {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 600;
 }
 
 .field textarea {
@@ -421,6 +457,112 @@ textarea {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   tab-size: 2;
+}
+
+.response-code.is-hidden,
+.response-tree.is-hidden {
+  display: none;
+}
+
+.response-tree {
+  min-height: 0;
+  height: 100%;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fbfbfb;
+  color: #1f2328;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow: auto;
+}
+
+.tree-view {
+  min-width: max-content;
+  padding: 0 8px;
+}
+
+.tree-node {
+  min-width: 0;
+}
+
+.tree-row {
+  display: flex;
+  align-items: baseline;
+  min-height: 20px;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.tree-row:hover {
+  background: #eef6ff;
+}
+
+.tree-children {
+  margin-left: 18px;
+}
+
+.tree-toggle,
+.tree-spacer {
+  flex: 0 0 16px;
+  width: 16px;
+}
+
+.tree-toggle {
+  min-height: 18px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #555555;
+  cursor: pointer;
+}
+
+.tree-toggle::before {
+  content: "\25B6";
+  display: inline-block;
+  font-size: 10px;
+  transform: rotate(90deg);
+}
+
+.tree-toggle[aria-expanded="false"]::before {
+  transform: rotate(0deg);
+}
+
+.tree-content {
+  min-width: 0;
+}
+
+.tree-key,
+.tree-tag {
+  color: #0550ae;
+}
+
+.tree-attr {
+  color: #6639ba;
+}
+
+.tree-string,
+.tree-text {
+  color: #0a7f42;
+}
+
+.tree-number {
+  color: #953800;
+}
+
+.tree-boolean,
+.tree-null {
+  color: #8250df;
+}
+
+.tree-comment,
+.tree-count {
+  color: #6e7781;
+}
+
+.tree-punct {
+  color: #24292f;
 }
 
 .syntax-key,
