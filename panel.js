@@ -22,6 +22,7 @@ const elements = {
   responseStatus: document.querySelector("#responseStatus"),
   responseTime: document.querySelector("#responseTime"),
   responseSize: document.querySelector("#responseSize"),
+  responseFormat: document.querySelector("#responseFormat"),
   responseHeaders: document.querySelector("#responseHeaders"),
   responseBody: document.querySelector("#responseBody"),
   response: document.querySelector(".response"),
@@ -225,7 +226,9 @@ function renderResponse(result) {
     ? `Size: ${formatSize(result.displayedChars)} shown / ${formatSize(result.totalChars)} total`
     : `Size: ${formatSize(result.displayedChars)}`;
   elements.responseHeaders.value = formatHeaders(result.headers);
-  elements.responseBody.value = result.body;
+  const formatted = HackBarResponseFormat.formatResponseBody(result.body, result.headers);
+  elements.responseFormat.textContent = `Format: ${formatted.type.toUpperCase()}`;
+  elements.responseBody.value = formatted.body;
   syncResponseMetaSeparators();
   setResponseTab("body");
   applyResponsiveResponseMode();
@@ -235,6 +238,7 @@ function renderError(error) {
   elements.responseStatus.textContent = "Error";
   elements.responseTime.textContent = "";
   elements.responseSize.textContent = "";
+  elements.responseFormat.textContent = "";
   elements.responseHeaders.value = "";
   elements.responseBody.value = error && error.stack ? error.stack : String(error);
   syncResponseMetaSeparators();
@@ -245,6 +249,7 @@ function clearResponse() {
   elements.responseStatus.textContent = "No response";
   elements.responseTime.textContent = "";
   elements.responseSize.textContent = "";
+  elements.responseFormat.textContent = "";
   elements.responseHeaders.value = "";
   elements.responseBody.value = "";
   syncResponseMetaSeparators();
@@ -491,10 +496,11 @@ const responseMetaObserver = new MutationObserver(syncResponseMetaSeparators);
 responseMetaObserver.observe(elements.responseStatus, { childList: true, characterData: true, subtree: true });
 responseMetaObserver.observe(elements.responseTime, { childList: true, characterData: true, subtree: true });
 responseMetaObserver.observe(elements.responseSize, { childList: true, characterData: true, subtree: true });
+responseMetaObserver.observe(elements.responseFormat, { childList: true, characterData: true, subtree: true });
 syncResponseMetaSeparators();
 
 function syncResponseMetaSeparators() {
-  const metaItems = [elements.responseStatus, elements.responseTime, elements.responseSize];
+  const metaItems = [elements.responseStatus, elements.responseTime, elements.responseSize, elements.responseFormat];
   metaItems.forEach((element, index) => {
     const hasContent = Boolean(element.textContent.trim());
     const hasNext = metaItems.slice(index + 1).some((item) => Boolean(item.textContent.trim()));
