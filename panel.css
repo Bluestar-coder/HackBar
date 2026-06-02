@@ -376,7 +376,7 @@ textarea {
 
 .field.response-panel.is-active {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto 0 minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
@@ -399,6 +399,53 @@ textarea {
   font-family: Consolas, "Courier New", monospace;
   white-space: pre;
   overflow: auto;
+}
+
+.response-panel > textarea {
+  display: none;
+}
+
+.response-code {
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fbfbfb;
+  color: #1f2328;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow: auto;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.syntax-key,
+.syntax-tag {
+  color: #0550ae;
+}
+
+.syntax-string {
+  color: #0a7f42;
+}
+
+.syntax-number {
+  color: #953800;
+}
+
+.syntax-boolean,
+.syntax-null {
+  color: #8250df;
+}
+
+.syntax-attr {
+  color: #6639ba;
+}
+
+.syntax-comment {
+  color: #6e7781;
 }
 
 .response.is-collapsed {

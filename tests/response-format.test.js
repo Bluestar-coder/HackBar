@@ -1,5 +1,5 @@
 const assert = require("node:assert");
-const { formatResponseBody } = require("../response-format");
+const { formatResponseBody, highlightResponseBody } = require("../response-format");
 
 const json = formatResponseBody('{"name":"HackBar","items":[1,2]}', {
   "content-type": "application/json"
@@ -22,5 +22,19 @@ const text = formatResponseBody("plain text", {
 
 assert.strictEqual(text.type, "text");
 assert.strictEqual(text.body, "plain text");
+
+const highlightedJson = highlightResponseBody('{\n  "name": "HackBar",\n  "enabled": true,\n  "count": 2\n}', "json");
+assert.match(highlightedJson, /<span class="syntax-key">&quot;name&quot;<\/span>/);
+assert.match(highlightedJson, /<span class="syntax-string">&quot;HackBar&quot;<\/span>/);
+assert.match(highlightedJson, /<span class="syntax-boolean">true<\/span>/);
+assert.match(highlightedJson, /<span class="syntax-number">2<\/span>/);
+
+const highlightedHtml = highlightResponseBody('<script>alert("x")</script>', "html");
+assert.match(highlightedHtml, /&lt;<span class="syntax-tag">script<\/span>&gt;/);
+assert.match(highlightedHtml, /&lt;\/<span class="syntax-tag">script<\/span>&gt;/);
+assert.doesNotMatch(highlightedHtml, /<script>/);
+
+const highlightedText = highlightResponseBody("a < b", "text");
+assert.strictEqual(highlightedText, "a &lt; b");
 
 console.log("response format tests passed");

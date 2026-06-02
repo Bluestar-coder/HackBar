@@ -37,6 +37,18 @@
     };
   }
 
+  function highlightResponseBody(body, type) {
+    const text = String(body || "");
+    if (type === "json") {
+      return highlightJson(text);
+    }
+    if (type === "html") {
+      return highlightHtml(text);
+    }
+
+    return escapeHtml(text);
+  }
+
   function getContentType(headers) {
     const source = headers || {};
     const match = Object.keys(source).find((name) => name.toLowerCase() === "content-type");
@@ -98,8 +110,44 @@
     return /^<[^/!?][^>]*>$/.test(token) && !/\/>$/.test(token);
   }
 
+  function highlightJson(text) {
+    return text.replace(/("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b|[<>&]/g, (match, stringToken, keySuffix, literalToken) => {
+      if (match === "<" || match === ">" || match === "&") {
+        return escapeHtml(match);
+      }
+      if (stringToken) {
+        const className = keySuffix ? "syntax-key" : "syntax-string";
+        return `<span class="${className}">${escapeHtml(stringToken)}</span>${keySuffix || ""}`;
+      }
+      if (literalToken === "true" || literalToken === "false") {
+        return `<span class="syntax-boolean">${literalToken}</span>`;
+      }
+      if (literalToken === "null") {
+        return `<span class="syntax-null">null</span>`;
+      }
+      return `<span class="syntax-number">${match}</span>`;
+    });
+  }
+
+  function highlightHtml(text) {
+    return escapeHtml(text).replace(/&lt;(\/?)([a-zA-Z][\w:-]*)([^&]*?)(&gt;)/g, (match, slash, tagName, rest, close) => {
+      const highlightedRest = rest.replace(/([\w:-]+)(=)(&quot;.*?&quot;|'.*?'|[^\s&]+)/g, '<span class="syntax-attr">$1</span>$2<span class="syntax-string">$3</span>');
+      return `&lt;${slash}<span class="syntax-tag">${tagName}</span>${highlightedRest}${close}`;
+    }).replace(/&lt;!--([\s\S]*?)--&gt;/g, '<span class="syntax-comment">&lt;!--$1--&gt;</span>');
+  }
+
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   return {
     formatResponseBody,
-    formatHtml
+    formatHtml,
+    highlightResponseBody,
+    escapeHtml
   };
 });

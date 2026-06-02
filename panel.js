@@ -25,6 +25,8 @@ const elements = {
   responseFormat: document.querySelector("#responseFormat"),
   responseHeaders: document.querySelector("#responseHeaders"),
   responseBody: document.querySelector("#responseBody"),
+  responseHeadersView: document.querySelector("#responseHeadersView"),
+  responseBodyView: document.querySelector("#responseBodyView"),
   response: document.querySelector(".response"),
   toggleResponse: document.querySelector("#toggleResponse"),
   responseTabs: Array.from(document.querySelectorAll("[data-response-tab]")),
@@ -229,6 +231,8 @@ function renderResponse(result) {
   const formatted = HackBarResponseFormat.formatResponseBody(result.body, result.headers);
   elements.responseFormat.textContent = `Format: ${formatted.type.toUpperCase()}`;
   elements.responseBody.value = formatted.body;
+  elements.responseBodyView.innerHTML = HackBarResponseFormat.highlightResponseBody(formatted.body, formatted.type);
+  elements.responseHeadersView.innerHTML = highlightHeaders(elements.responseHeaders.value);
   syncResponseMetaSeparators();
   setResponseTab("body");
   applyResponsiveResponseMode();
@@ -241,6 +245,8 @@ function renderError(error) {
   elements.responseFormat.textContent = "";
   elements.responseHeaders.value = "";
   elements.responseBody.value = error && error.stack ? error.stack : String(error);
+  elements.responseHeadersView.innerHTML = "";
+  elements.responseBodyView.innerHTML = HackBarResponseFormat.highlightResponseBody(elements.responseBody.value, "text");
   syncResponseMetaSeparators();
   setResponseTab("body");
 }
@@ -252,6 +258,8 @@ function clearResponse() {
   elements.responseFormat.textContent = "";
   elements.responseHeaders.value = "";
   elements.responseBody.value = "";
+  elements.responseHeadersView.innerHTML = "";
+  elements.responseBodyView.innerHTML = "";
   syncResponseMetaSeparators();
 }
 
@@ -259,6 +267,10 @@ function formatHeaders(headers) {
   return Object.entries(headers || {})
     .map(([name, value]) => `${name}: ${value}`)
     .join("\n");
+}
+
+function highlightHeaders(headersText) {
+  return HackBarResponseFormat.escapeHtml(headersText).replace(/^([^:\n]+):/gm, '<span class="syntax-key">$1</span>:');
 }
 
 function formatSize(chars) {
