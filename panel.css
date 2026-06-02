@@ -118,11 +118,13 @@ textarea {
   top: 31px;
   left: 0;
   display: grid;
-  min-width: 160px;
+  min-width: 190px;
+  max-height: min(70vh, 520px);
   padding: 4px;
   border: 1px solid var(--border);
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  overflow: auto;
 }
 
 .menu-popover button {
@@ -134,6 +136,20 @@ textarea {
 
 .menu-popover button:hover {
   background: #e9f2ff;
+}
+
+.menu-section {
+  padding: 7px 8px 3px;
+  border-top: 1px solid #eeeeee;
+  color: #777777;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.menu-section:first-child {
+  border-top: 0;
+  padding-top: 3px;
 }
 
 .status {

