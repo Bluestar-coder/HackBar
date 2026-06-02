@@ -34,9 +34,21 @@ assert.match(highlightedHtml, /&lt;<span class="syntax-tag">script<\/span>&gt;/)
 assert.match(highlightedHtml, /&lt;\/<span class="syntax-tag">script<\/span>&gt;/);
 assert.doesNotMatch(highlightedHtml, /<script>/);
 
+const htmlWithEmbeddedData = formatResponseBody('<html><body><script type="speculationrules">{"prefetch":[{"urls":["https://example.test/a","https://example.test/b"],"requires":["anonymous-client-ip-when-cross-origin"]}]}</script><script>const enabled=true;window.x=["a","b"];</script></body></html>', {
+  "content-type": "text/html"
+});
+assert.match(htmlWithEmbeddedData.body, /<script type="speculationrules">\n\s+\{\n\s+"prefetch": \[/);
+assert.match(htmlWithEmbeddedData.body, /\n\s+const enabled=true;/);
+assert.match(htmlWithEmbeddedData.body, /\n\s+window\.x=/);
+
 const highlightedLink = highlightResponseBody('<a href="https://example.test/?a=1&b=2">link</a>', "html");
 assert.match(highlightedLink, /<span class="syntax-attr">href<\/span>=<span class="syntax-string">&quot;https:\/\/example\.test\/\?a=1&amp;b=2&quot;<\/span>/);
 assert.match(highlightedLink, /&lt;<span class="syntax-tag">a<\/span>/);
+
+const highlightedScript = highlightResponseBody('  const enabled=true;\n  window.x=[\n    "a"\n  ];', "html");
+assert.match(highlightedScript, /<span class="syntax-keyword">const<\/span>/);
+assert.match(highlightedScript, /<span class="syntax-boolean">true<\/span>/);
+assert.match(highlightedScript, /<span class="syntax-string">&quot;a&quot;<\/span>/);
 
 const wrapped = wrapLongLines(`  <script>${"a".repeat(700)}</script>`, 120);
 assert.ok(wrapped.split("\n").length > 1);

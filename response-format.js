@@ -66,29 +66,48 @@
   }
 
   function formatHtml(html) {
-    const tokens = html
-      .replace(/>\s*</g, "><")
-      .replace(/(<[^>]+>)/g, "\n$1\n")
-      .split("\n")
-      .map((token) => token.trim())
-      .filter(Boolean);
+    const tokens = tokenizeHtml(html);
     let depth = 0;
     const lines = [];
 
     for (let index = 0; index < tokens.length; index += 1) {
       const token = tokens[index];
-      if (isOpeningTag(token) && tokens[index + 1] && isClosingTag(tokens[index + 2])) {
-        lines.push(`${"  ".repeat(depth)}${token}${tokens[index + 1]}${tokens[index + 2]}`);
-        index += 2;
+      if (
+        token.type === "tag" &&
+        isOpeningTag(token.value) &&
+        !isVoidTag(token.value) &&
+        tokens[index + 1] &&
+        tokens[index + 1].type === "text" &&
+        tokens[index + 2] &&
+        isMatchingClosingTag(token.value, tokens[index + 2].value)
+      ) {
+        const text = tokens[index + 1].value.trim();
+        if (text && !/[\r\n]/.test(text)) {
+          lines.push(`${"  ".repeat(depth)}${token.value.trim()}${text}${tokens[index + 2].value.trim()}`);
+          index += 2;
+          continue;
+        }
+      }
+
+      if (token.type === "text") {
+        const text = token.value.trim();
+        if (text) {
+          lines.push(`${"  ".repeat(depth)}${text}`);
+        }
         continue;
       }
 
-      if (isClosingTag(token)) {
+      if (token.type === "raw") {
+        lines.push(...formatRawText(token.value, token.tagName, "  ".repeat(depth)));
+        continue;
+      }
+
+      if (isClosingTag(token.value)) {
         depth = Math.max(depth - 1, 0);
       }
 
-      const line = `${"  ".repeat(depth)}${token}`;
-      if (opensScope(token)) {
+      const line = `${"  ".repeat(depth)}${token.value.trim()}`;
+      if (opensScope(token.value)) {
         depth += 1;
       }
 
@@ -103,11 +122,229 @@
   }
 
   function opensScope(token) {
-    return isOpeningTag(token);
+    return isOpeningTag(token) && !isVoidTag(token);
   }
 
   function isOpeningTag(token) {
     return /^<[^/!?][^>]*>$/.test(token) && !/\/>$/.test(token);
+  }
+
+  function isMatchingClosingTag(openTag, closeTag) {
+    const openName = getTagName(openTag);
+    const closeName = getTagName(closeTag);
+    return Boolean(openName && closeName && openName === closeName && isClosingTag(closeTag));
+  }
+
+  function isVoidTag(token) {
+    const match = token.match(/^<\s*([a-zA-Z][\w:-]*)/);
+    if (!match) {
+      return false;
+    }
+
+    return [
+      "area",
+      "base",
+      "br",
+      "col",
+      "embed",
+      "hr",
+      "img",
+      "input",
+      "link",
+      "meta",
+      "param",
+      "source",
+      "track",
+      "wbr"
+    ].includes(match[1].toLowerCase());
+  }
+
+  function tokenizeHtml(html) {
+    const source = String(html || "");
+    const lowerSource = source.toLowerCase();
+    const tokens = [];
+    let index = 0;
+
+    while (index < source.length) {
+      if (source.startsWith("<!--", index)) {
+        const end = source.indexOf("-->", index + 4);
+        const closeIndex = end >= 0 ? end + 3 : source.length;
+        tokens.push({ type: "tag", value: source.slice(index, closeIndex) });
+        index = closeIndex;
+        continue;
+      }
+
+      if (source[index] !== "<") {
+        const nextTag = source.indexOf("<", index);
+        const end = nextTag >= 0 ? nextTag : source.length;
+        tokens.push({ type: "text", value: source.slice(index, end) });
+        index = end;
+        continue;
+      }
+
+      const tagEnd = source.indexOf(">", index + 1);
+      if (tagEnd < 0) {
+        tokens.push({ type: "text", value: source.slice(index) });
+        break;
+      }
+
+      const tag = source.slice(index, tagEnd + 1);
+      tokens.push({ type: "tag", value: tag });
+
+      const tagName = getTagName(tag);
+      if (tagName && isRawTextTag(tagName) && isOpeningTag(tag)) {
+        const closingStart = lowerSource.indexOf(`</${tagName}`, tagEnd + 1);
+        if (closingStart >= 0) {
+          const closingEnd = source.indexOf(">", closingStart + 2);
+          tokens.push({
+            type: "raw",
+            tagName,
+            opener: tag,
+            value: source.slice(tagEnd + 1, closingStart)
+          });
+          if (closingEnd >= 0) {
+            tokens.push({ type: "tag", value: source.slice(closingStart, closingEnd + 1) });
+            index = closingEnd + 1;
+            continue;
+          }
+        }
+      }
+
+      index = tagEnd + 1;
+    }
+
+    return tokens.filter((token) => token.value);
+  }
+
+  function getTagName(tag) {
+    const match = tag.match(/^<\/?\s*([a-zA-Z][\w:-]*)/);
+    return match ? match[1].toLowerCase() : "";
+  }
+
+  function isRawTextTag(tagName) {
+    return tagName === "script" || tagName === "style" || tagName === "textarea" || tagName === "pre";
+  }
+
+  function formatRawText(value, tagName, indent) {
+    const text = String(value || "").trim();
+    if (!text) {
+      return [];
+    }
+
+    if (tagName === "script") {
+      return formatScriptText(text, indent);
+    }
+    if (tagName === "style") {
+      return formatStyleText(text, indent);
+    }
+
+    return text.split(/\r?\n/).map((line) => `${indent}${line.trimEnd()}`).filter((line) => line.trim());
+  }
+
+  function formatScriptText(text, indent) {
+    const json = tryFormatJson(text);
+    if (json) {
+      return json.split("\n").map((line) => `${indent}${line}`);
+    }
+
+    return indentScriptLines(splitScriptLines(text), indent);
+  }
+
+  function splitScriptLines(text) {
+    const lines = [];
+    let current = "";
+    let quote = "";
+    let escaped = false;
+
+    for (const char of String(text || "")) {
+      current += char;
+
+      if (quote) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === quote) {
+          quote = "";
+        }
+        continue;
+      }
+
+      if (char === "\"" || char === "'" || char === "`") {
+        quote = char;
+        continue;
+      }
+
+      if (char === "}" || char === "]") {
+        const beforeClosing = current.slice(0, -1);
+        if (beforeClosing.trim()) {
+          lines.push(beforeClosing);
+        }
+        lines.push(char);
+        current = "";
+        continue;
+      }
+
+      if (char === ";" || char === "," || char === "{" || char === "[") {
+        lines.push(current);
+        current = "";
+      }
+    }
+
+    if (current) {
+      lines.push(current);
+    }
+
+    return lines;
+  }
+
+  function indentScriptLines(lines, baseIndent) {
+    const output = [];
+    let depth = 0;
+
+    lines
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        if (line === ";" && output.length) {
+          output[output.length - 1] = `${output[output.length - 1]};`;
+          return;
+        }
+
+        if (/^[}\]]/.test(line)) {
+          depth = Math.max(depth - 1, 0);
+        }
+
+        output.push(`${baseIndent}${"  ".repeat(depth)}${line}`);
+
+        if (/[{[]$/.test(line)) {
+          depth += 1;
+        }
+      });
+
+    return output;
+  }
+
+  function formatStyleText(text, indent) {
+    return text
+      .replace(/([{};])/g, "$1\n")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => `${indent}${line}`);
+  }
+
+  function tryFormatJson(text) {
+    const trimmed = String(text || "").trim();
+    if (!trimmed || !/^[{[]/.test(trimmed)) {
+      return "";
+    }
+
+    try {
+      return JSON.stringify(JSON.parse(trimmed), null, 2);
+    } catch (_error) {
+      return "";
+    }
   }
 
   function highlightJson(text) {
@@ -141,9 +378,32 @@
       return line.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="syntax-comment">$1</span>');
     }
 
-    return line.replace(/&lt;(\/?)([a-zA-Z][\w:-]*)([\s\S]*?)(&gt;)/g, (_match, slash, tagName, rest, close) => {
+    if (line.includes("&lt;")) {
+      return line.replace(/&lt;(\/?)([a-zA-Z][\w:-]*)([\s\S]*?)(&gt;)/g, (_match, slash, tagName, rest, close) => {
       const highlightedRest = rest.replace(/([\w:-]+)(=)(&quot;.*?&quot;|'.*?'|[^\s&]+)/g, '<span class="syntax-attr">$1</span>$2<span class="syntax-string">$3</span>');
       return `&lt;${slash}<span class="syntax-tag">${tagName}</span>${highlightedRest}${close}`;
+      });
+    }
+
+    return highlightCodeLine(line);
+  }
+
+  function highlightCodeLine(line) {
+    return line.replace(/(&quot;(?:\\.|[^&])*?&quot;|'(?:\\.|[^'\\])*?'|\b(?:true|false|null|undefined|function|return|var|let|const|if|else|for|while|new|this)\b|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)/g, (match) => {
+      if (match.startsWith("&quot;") || match.startsWith("'")) {
+        return `<span class="syntax-string">${match}</span>`;
+      }
+      if (/^(true|false)$/.test(match)) {
+        return `<span class="syntax-boolean">${match}</span>`;
+      }
+      if (/^(null|undefined)$/.test(match)) {
+        return `<span class="syntax-null">${match}</span>`;
+      }
+      if (/^-?\d/.test(match)) {
+        return `<span class="syntax-number">${match}</span>`;
+      }
+
+      return `<span class="syntax-keyword">${match}</span>`;
     });
   }
 
