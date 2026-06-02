@@ -6,7 +6,7 @@
 
   root.HackBarResponseTree = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
-  const DEFAULT_DEPTH = 2;
+  const DEFAULT_DEPTH = 5;
   const MAX_TEXT_LENGTH = 180;
 
   function buildJsonTree(text) {

@@ -303,7 +303,7 @@ function renderBodyTree(rawBody, type) {
       throw new Error("Tree view is only available for HTML and JSON");
     }
 
-    elements.responseBodyTree.innerHTML = HackBarResponseTree.renderTree(tree, { defaultDepth: 2 });
+    elements.responseBodyTree.innerHTML = HackBarResponseTree.renderTree(tree);
     setBodyView("tree");
   } catch (_error) {
     setBodyView("raw");

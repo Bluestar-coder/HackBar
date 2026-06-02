@@ -20,6 +20,11 @@ assert.match(rendered, /<span class="tree-number">1<\/span>/);
 assert.match(rendered, /<span class="tree-boolean">true<\/span>/);
 assert.match(rendered, /<span class="tree-null">null<\/span>/);
 
+const deepTree = buildJsonTree('{"a":{"b":{"c":{"d":{"e":{"f":1}}}}}}');
+const defaultRendered = renderTree(deepTree);
+const expandedCount = (defaultRendered.match(/<button[^>]+aria-expanded="true"/g) || []).length;
+assert.strictEqual(expandedCount, 5);
+
 assert.throws(() => buildJsonTree("{"), /Invalid JSON/);
 
 console.log("response tree tests passed");
