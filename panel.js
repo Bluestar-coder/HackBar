@@ -62,7 +62,9 @@ textTargets.forEach((target) => {
   });
 });
 elements.tools.forEach((button) => {
-  button.addEventListener("click", () => applyTool(button.dataset.tool));
+  button.addEventListener("click", () => {
+    applyTool(button.dataset.tool);
+  });
 });
 elements.inserts.forEach((button) => {
   button.addEventListener("click", () => insertText(button.dataset.insert || ""));
@@ -351,32 +353,19 @@ function formatSize(chars) {
   return `${bytes} B`;
 }
 
-function applyTool(tool) {
+async function applyTool(tool) {
   const target = getActiveTextTarget();
   const selected = getSelectedText(target);
   const input = selected || target.value;
-  let output = "";
 
   try {
-    if (tool === "url-encode") {
-      output = encodeURIComponent(input);
-    } else if (tool === "url-decode") {
-      output = decodeURIComponent(input);
-    } else if (tool === "base64-encode") {
-      output = btoa(unescape(encodeURIComponent(input)));
-    } else if (tool === "base64-decode") {
-      output = decodeURIComponent(escape(atob(input)));
-    } else {
-      throw new Error("Unknown tool");
-    }
+    const output = await HackBarRequestTools.applyRequestTool(tool, input);
+    replaceText(target, output, Boolean(selected));
+    closeMenus();
+    setStatus("Tool applied", "ok");
   } catch (error) {
     setStatus(error.message || "Tool failed", "error");
-    return;
   }
-
-  replaceText(target, output, Boolean(selected));
-  closeMenus();
-  setStatus("Tool applied", "ok");
 }
 
 function insertText(value) {

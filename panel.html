@@ -14,6 +14,9 @@
           <div class="menu-popover">
             <button type="button" data-tool="base64-encode">Base64 Encode</button>
             <button type="button" data-tool="base64-decode">Base64 Decode</button>
+            <button type="button" data-tool="md5">MD5</button>
+            <button type="button" data-tool="sha1">SHA-1</button>
+            <button type="button" data-tool="sha256">SHA-256</button>
           </div>
         </details>
         <details class="menu">
@@ -21,6 +24,12 @@
           <div class="menu-popover">
             <button type="button" data-tool="url-encode">URL Encode</button>
             <button type="button" data-tool="url-decode">URL Decode</button>
+            <button type="button" data-tool="html-encode">HTML Encode</button>
+            <button type="button" data-tool="html-decode">HTML Decode</button>
+            <button type="button" data-tool="hex-encode">Hex Encode</button>
+            <button type="button" data-tool="hex-decode">Hex Decode</button>
+            <button type="button" data-tool="unicode-encode">Unicode Encode</button>
+            <button type="button" data-tool="unicode-decode">Unicode Decode</button>
           </div>
         </details>
         <details class="menu">
@@ -28,6 +37,11 @@
           <div class="menu-popover">
             <button type="button" data-insert="'">Quote</button>
             <button type="button" data-insert="' OR '1'='1">Boolean test</button>
+            <button type="button" data-insert="' UNION SELECT NULL-- ">Union select</button>
+            <button type="button" data-insert="' ORDER BY 1-- ">Order by</button>
+            <button type="button" data-insert="-- ">Comment dash</button>
+            <button type="button" data-insert="/* */">Comment block</button>
+            <button type="button" data-insert="' AND SLEEP(5)-- ">Time delay</button>
           </div>
         </details>
         <details class="menu">
@@ -35,6 +49,9 @@
           <div class="menu-popover">
             <button type="button" data-insert="<script>alert(1)</script>">Alert</button>
             <button type="button" data-insert="&quot;><img src=x onerror=alert(1)>">Image error</button>
+            <button type="button" data-insert="<svg onload=alert(1)>">SVG onload</button>
+            <button type="button" data-insert="&quot; autofocus onfocus=alert(1) x=&quot;">Attribute break</button>
+            <button type="button" data-insert="javascript:alert(1)">JavaScript URL</button>
           </div>
         </details>
         <details class="menu">
@@ -42,6 +59,11 @@
           <div class="menu-popover">
             <button type="button" data-insert="../">Path segment</button>
             <button type="button" data-insert="{{7*7}}">Template test</button>
+            <button type="button" data-insert="../../../../etc/passwd">LFI passwd</button>
+            <button type="button" data-insert="C:\Windows\win.ini">LFI win.ini</button>
+            <button type="button" data-insert="${7*7}">SSTI dollar</button>
+            <button type="button" data-insert="<%= 7*7 %>">SSTI ERB</button>
+            <button type="button" data-insert="<!DOCTYPE xxe [<!ENTITY xxe SYSTEM &quot;file:///etc/passwd&quot;>]><root>&amp;xxe;</root>">XXE basic</button>
           </div>
         </details>
         <span id="status" class="status" role="status">Ready</span>
@@ -129,6 +151,7 @@
     </main>
 
     <script src="page-update.js"></script>
+    <script src="request-tools.js"></script>
     <script src="response-format.js"></script>
     <script src="response-tree.js"></script>
     <script src="panel.js"></script>
