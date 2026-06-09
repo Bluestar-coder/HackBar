@@ -223,7 +223,7 @@ textarea {
 .option-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px 18px;
   min-height: 40px;
   flex-wrap: wrap;
 }
@@ -232,6 +232,26 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap;
+}
+
+.option-row .option-field {
+  gap: 10px;
+}
+
+.option-row select {
+  min-height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+#method {
+  min-width: 128px;
+}
+
+#contentType {
+  min-width: 156px;
 }
 
 .option-row input {

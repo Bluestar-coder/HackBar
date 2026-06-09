@@ -6,6 +6,21 @@
 
   root.HackBarRequestTools = factory();
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  const FORM_BODY_TEMPLATE = "key=value&other=value";
+  const XML_BODY_TEMPLATE = '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <item>value</item>\n</root>';
+  const MULTIPART_BODY_TEMPLATE = [
+    "------HackBarBoundary",
+    'Content-Disposition: form-data; name="file"; filename="example.txt"',
+    "Content-Type: text/plain",
+    "",
+    "file content",
+    "------HackBarBoundary",
+    'Content-Disposition: form-data; name="name"',
+    "",
+    "value",
+    "------HackBarBoundary--"
+  ].join("\n");
+
   async function applyRequestTool(tool, input) {
     const text = String(input || "");
 
@@ -15,11 +30,23 @@
     if (tool === "url-decode") {
       return decodeURIComponent(text);
     }
+    if (tool === "url-encode-all") {
+      return urlEncodeAll(text);
+    }
+    if (tool === "url-decode-plus") {
+      return decodeURIComponent(text.replace(/\+/g, " "));
+    }
     if (tool === "base64-encode") {
       return base64Encode(text);
     }
     if (tool === "base64-decode") {
       return base64Decode(text);
+    }
+    if (tool === "base64url-encode") {
+      return base64UrlEncode(text);
+    }
+    if (tool === "base64url-decode") {
+      return base64UrlDecode(text);
     }
     if (tool === "html-encode") {
       return htmlEncode(text);
@@ -27,17 +54,44 @@
     if (tool === "html-decode") {
       return htmlDecode(text);
     }
+    if (tool === "html-decimal-encode") {
+      return htmlDecimalEncode(text);
+    }
+    if (tool === "html-hex-encode") {
+      return htmlHexEncode(text);
+    }
     if (tool === "hex-encode") {
       return hexEncode(text);
     }
     if (tool === "hex-decode") {
       return hexDecode(text);
     }
+    if (tool === "binary-encode") {
+      return binaryEncode(text);
+    }
+    if (tool === "binary-decode") {
+      return binaryDecode(text);
+    }
     if (tool === "unicode-encode") {
       return unicodeEncode(text);
     }
     if (tool === "unicode-decode") {
       return unicodeDecode(text);
+    }
+    if (tool === "charcode-encode") {
+      return charCodeEncode(text);
+    }
+    if (tool === "charcode-decode") {
+      return charCodeDecode(text);
+    }
+    if (tool === "json-escape") {
+      return jsonEscape(text);
+    }
+    if (tool === "json-unescape") {
+      return jsonUnescape(text);
+    }
+    if (tool === "rot13") {
+      return rot13(text);
     }
     if (tool === "md5") {
       return md5(text);
@@ -48,8 +102,20 @@
     if (tool === "sha256") {
       return digest("SHA-256", text);
     }
+    if (tool === "sha384") {
+      return digest("SHA-384", text);
+    }
+    if (tool === "sha512") {
+      return digest("SHA-512", text);
+    }
 
     throw new Error("Unknown tool");
+  }
+
+  function urlEncodeAll(text) {
+    return Array.from(utf8Encode(text))
+      .map((byte) => `%${byte.toString(16).padStart(2, "0").toUpperCase()}`)
+      .join("");
   }
 
   function base64Encode(text) {
@@ -66,6 +132,26 @@
     }
 
     return Buffer.from(text, "base64").toString("utf8");
+  }
+
+  function base64UrlEncode(text) {
+    return base64Encode(text)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  }
+
+  function base64UrlDecode(text) {
+    const normalized = String(text || "").trim();
+    if (!/^[A-Za-z0-9_-]*={0,2}$/.test(normalized) || normalized.length % 4 === 1) {
+      throw new Error("Input must be valid Base64URL");
+    }
+
+    const base64 = normalized
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return base64Decode(base64);
   }
 
   function htmlEncode(text) {
@@ -99,6 +185,18 @@
     });
   }
 
+  function htmlDecimalEncode(text) {
+    return Array.from(text)
+      .map((char) => `&#${char.codePointAt(0)};`)
+      .join("");
+  }
+
+  function htmlHexEncode(text) {
+    return Array.from(text)
+      .map((char) => `&#x${char.codePointAt(0).toString(16)};`)
+      .join("");
+  }
+
   function hexEncode(text) {
     return Array.from(utf8Encode(text))
       .map((byte) => byte.toString(16).padStart(2, "0"))
@@ -119,6 +217,26 @@
     return utf8Decode(new Uint8Array(bytes));
   }
 
+  function binaryEncode(text) {
+    return Array.from(utf8Encode(text))
+      .map((byte) => byte.toString(2).padStart(8, "0"))
+      .join(" ");
+  }
+
+  function binaryDecode(text) {
+    const normalized = text.trim();
+    if (!normalized) {
+      return "";
+    }
+
+    const parts = normalized.split(/[\s,]+/).filter(Boolean);
+    if (!parts.every((part) => /^[01]{8}$/.test(part))) {
+      throw new Error("Input must be valid binary");
+    }
+
+    return utf8Decode(new Uint8Array(parts.map((part) => parseInt(part, 2))));
+  }
+
   function unicodeEncode(text) {
     return Array.from(text)
       .map((char) => {
@@ -136,6 +254,53 @@
     return text
       .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_match, hex) => String.fromCodePoint(parseInt(hex, 16)))
       .replace(/\\u([0-9a-fA-F]{4})/g, (_match, hex) => String.fromCodePoint(parseInt(hex, 16)));
+  }
+
+  function charCodeEncode(text) {
+    return Array.from(text)
+      .map((char) => String(char.codePointAt(0)))
+      .join(" ");
+  }
+
+  function charCodeDecode(text) {
+    const normalized = text.trim();
+    if (!normalized) {
+      return "";
+    }
+
+    const codes = normalized.split(/[\s,]+/).filter(Boolean);
+    if (!codes.every((code) => /^\d+$/.test(code))) {
+      throw new Error("Input must be valid character code");
+    }
+
+    return codes
+      .map((code) => {
+        const value = Number(code);
+        if (!Number.isSafeInteger(value) || value < 0 || value > 0x10ffff) {
+          throw new Error("Input must be valid character code");
+        }
+        return String.fromCodePoint(value);
+      })
+      .join("");
+  }
+
+  function jsonEscape(text) {
+    return JSON.stringify(text).slice(1, -1);
+  }
+
+  function jsonUnescape(text) {
+    try {
+      return JSON.parse(`"${text}"`);
+    } catch (_error) {
+      throw new Error("Input must be valid JSON string content");
+    }
+  }
+
+  function rot13(text) {
+    return text.replace(/[a-zA-Z]/g, (char) => {
+      const base = char <= "Z" ? 65 : 97;
+      return String.fromCharCode(((char.charCodeAt(0) - base + 13) % 26) + base);
+    });
   }
 
   async function digest(algorithm, text) {
@@ -293,7 +458,75 @@
       .join("");
   }
 
+  function formatBodyForContentType(body, contentType) {
+    const text = String(body || "");
+    const type = String(contentType || "").toLowerCase();
+    if (shouldInsertBodyTemplate(text)) {
+      const template = getBodyTemplateForContentType(type);
+      if (template) {
+        return {
+          body: template,
+          formatted: true,
+          templated: true
+        };
+      }
+    }
+
+    if (type.includes("json")) {
+      try {
+        return {
+          body: JSON.stringify(JSON.parse(text), null, 2),
+          formatted: true
+        };
+      } catch (_error) {
+        return {
+          body: text,
+          formatted: false,
+          error: "JSON body is not valid"
+        };
+      }
+    }
+
+    if (type.includes("application/x-www-form-urlencoded")) {
+      const normalized = normalizeFormBody(text);
+      return {
+        body: normalized,
+        formatted: normalized !== text
+      };
+    }
+
+    return { body: text, formatted: false };
+  }
+
+  function shouldInsertBodyTemplate(body) {
+    const text = String(body || "").trim();
+    return !text || text === FORM_BODY_TEMPLATE || text === XML_BODY_TEMPLATE || text === MULTIPART_BODY_TEMPLATE;
+  }
+
+  function getBodyTemplateForContentType(type) {
+    if (type.includes("application/x-www-form-urlencoded")) {
+      return FORM_BODY_TEMPLATE;
+    }
+    if (type.includes("xml")) {
+      return XML_BODY_TEMPLATE;
+    }
+    if (type.includes("multipart/form-data")) {
+      return MULTIPART_BODY_TEMPLATE;
+    }
+    return "";
+  }
+
+  function normalizeFormBody(body) {
+    const source = String(body || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join("&");
+    return new URLSearchParams(source).toString();
+  }
+
   return {
-    applyRequestTool
+    applyRequestTool,
+    formatBodyForContentType
   };
 });

@@ -3,7 +3,8 @@ const elements = {
   splitUrl: document.querySelector("#splitUrl"),
   send: document.querySelector("#send"),
   clearAll: document.querySelector("#clearAll"),
-  postData: document.querySelector("#postData"),
+  method: document.querySelector("#method"),
+  contentType: document.querySelector("#contentType"),
   refererToggle: document.querySelector("#refererToggle"),
   userAgentToggle: document.querySelector("#userAgentToggle"),
   cookiesToggle: document.querySelector("#cookiesToggle"),
@@ -23,8 +24,10 @@ const elements = {
   responseTime: document.querySelector("#responseTime"),
   responseSize: document.querySelector("#responseSize"),
   responseFormat: document.querySelector("#responseFormat"),
+  responseRaw: document.querySelector("#responseRaw"),
   responseHeaders: document.querySelector("#responseHeaders"),
   responseBody: document.querySelector("#responseBody"),
+  responseRawView: document.querySelector("#responseRawView"),
   responseHeadersView: document.querySelector("#responseHeadersView"),
   responseBodyView: document.querySelector("#responseBodyView"),
   responseBodyTree: document.querySelector("#responseBodyTree"),
@@ -41,19 +44,52 @@ const elements = {
 let lastTextTarget = elements.body;
 let bodyViewMode = "tree";
 const textTargets = [elements.url, elements.headers, elements.body];
+const requestInputs = {
+  url: elements.url,
+  headers: elements.headers,
+  body: elements.body,
+  refererValue: elements.refererValue,
+  userAgentValue: elements.userAgentValue,
+  cookiesValue: elements.cookiesValue
+};
+const requestInputTargets = Object.values(requestInputs);
+const requestInputKeyByElement = new Map(Object.entries(requestInputs).map(([key, target]) => [target, key]));
+const editorHistory = HackBarEditorHistory.createEditorHistory(captureRequestState, restoreRequestState);
 
-elements.loadUrl.addEventListener("click", loadInspectedUrl);
+elements.loadUrl.addEventListener("click", () => loadInspectedUrl(true));
 elements.splitUrl.addEventListener("click", splitUrl);
 elements.send.addEventListener("click", sendRequest);
 elements.clearAll.addEventListener("click", clearAll);
-elements.postData.addEventListener("change", syncPostDataState);
-elements.refererToggle.addEventListener("change", syncExtraFields);
-elements.userAgentToggle.addEventListener("change", syncExtraFields);
-elements.cookiesToggle.addEventListener("change", syncExtraFields);
+elements.method.addEventListener("change", () => {
+  syncMethodState();
+  recordEditorState();
+});
+elements.contentType.addEventListener("change", applyContentTypeShortcut);
+elements.refererToggle.addEventListener("change", () => {
+  syncExtraFields();
+  recordEditorState();
+});
+elements.userAgentToggle.addEventListener("change", () => {
+  syncExtraFields();
+  recordEditorState();
+});
+elements.cookiesToggle.addEventListener("change", () => {
+  syncExtraFields();
+  recordEditorState();
+});
+elements.updatePage.addEventListener("change", recordEditorState);
 elements.toggleResponse.addEventListener("click", () => {
   setResponseCollapsed(!elements.response.classList.contains("is-collapsed"), true);
 });
 window.addEventListener("resize", applyResponsiveResponseMode);
+requestInputTargets.forEach((target) => {
+  target.addEventListener("input", () => {
+    if (textTargets.includes(target)) {
+      lastTextTarget = target;
+    }
+    recordEditorState();
+  });
+});
 textTargets.forEach((target) => {
   ["focus", "select", "mouseup", "keyup"].forEach((eventName) => {
     target.addEventListener(eventName, () => {
@@ -93,18 +129,15 @@ document.addEventListener("click", (event) => {
     closeMenus();
   }
 });
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    closeMenus();
-  }
-});
+document.addEventListener("keydown", handleKeyboardShortcut);
 
-loadInspectedUrl();
-syncPostDataState();
+editorHistory.reset();
+loadInspectedUrl(false);
+syncMethodState();
 syncExtraFields();
 applyResponsiveResponseMode();
 
-function loadInspectedUrl() {
+function loadInspectedUrl(shouldRecordHistory) {
   setBusy(true);
   setStatus("Loading inspected URL");
   if (!globalThis.chrome || !chrome.devtools || !chrome.devtools.inspectedWindow) {
@@ -121,6 +154,11 @@ function loadInspectedUrl() {
     }
 
     elements.url.value = typeof result === "string" ? result : "";
+    if (shouldRecordHistory) {
+      recordEditorState();
+    } else {
+      editorHistory.reset();
+    }
     setStatus("Ready", "ok");
     setBusy(false);
   });
@@ -168,7 +206,7 @@ async function sendRequest() {
 }
 
 function buildPayload() {
-  const method = elements.postData.checked ? "POST" : "GET";
+  const method = elements.method.value.toUpperCase();
   const url = normalizeSplitUrlInput(elements.url.value);
 
   if (!url) {
@@ -181,7 +219,7 @@ function buildPayload() {
     throw new Error("URL must be absolute and valid");
   }
 
-  const body = method === "POST" ? elements.body.value : "";
+  const body = shouldSendBody(method) ? elements.body.value : "";
   const headers = parseHeaders(elements.headers.value);
   applyOptionalHeader(headers, elements.refererToggle, "Referer", elements.refererValue.value);
   applyOptionalHeader(headers, elements.userAgentToggle, "User-Agent", elements.userAgentValue.value);
@@ -242,14 +280,16 @@ function renderResponse(result) {
     ? `Size: ${formatSize(result.displayedChars)} shown / ${formatSize(result.totalChars)} total`
     : `Size: ${formatSize(result.displayedChars)}`;
   elements.responseHeaders.value = formatHeaders(result.headers);
+  elements.responseRaw.value = HackBarResponseFormat.formatHttpResponse(result);
   const formatted = HackBarResponseFormat.formatResponseBody(result.body, result.headers);
   elements.responseFormat.textContent = `Format: ${formatted.type.toUpperCase()}`;
   elements.responseBody.value = formatted.body;
+  elements.responseRawView.innerHTML = HackBarResponseFormat.escapeHtml(elements.responseRaw.value);
   elements.responseBodyView.innerHTML = HackBarResponseFormat.highlightResponseBody(formatted.body, formatted.type);
   renderBodyTree(result.body, formatted.type);
   elements.responseHeadersView.innerHTML = highlightHeaders(elements.responseHeaders.value);
   syncResponseMetaSeparators();
-  setResponseTab("body");
+  setResponseTab("raw");
   applyResponsiveResponseMode();
 }
 
@@ -259,7 +299,9 @@ function renderError(error) {
   elements.responseSize.textContent = "";
   elements.responseFormat.textContent = "";
   elements.responseHeaders.value = "";
+  elements.responseRaw.value = "";
   elements.responseBody.value = error && error.stack ? error.stack : String(error);
+  elements.responseRawView.innerHTML = "";
   elements.responseHeadersView.innerHTML = "";
   elements.responseBodyTree.innerHTML = "";
   elements.responseBodyView.innerHTML = HackBarResponseFormat.highlightResponseBody(elements.responseBody.value, "text");
@@ -274,7 +316,9 @@ function clearResponse() {
   elements.responseSize.textContent = "";
   elements.responseFormat.textContent = "";
   elements.responseHeaders.value = "";
+  elements.responseRaw.value = "";
   elements.responseBody.value = "";
+  elements.responseRawView.innerHTML = "";
   elements.responseHeadersView.innerHTML = "";
   elements.responseBodyTree.innerHTML = "";
   elements.responseBodyView.innerHTML = "";
@@ -286,6 +330,49 @@ function formatHeaders(headers) {
   return Object.entries(headers || {})
     .map(([name, value]) => `${name}: ${value}`)
     .join("\n");
+}
+
+function applyContentTypeShortcut() {
+  if (!elements.contentType.value) {
+    recordEditorState();
+    return;
+  }
+
+  elements.headers.value = upsertHeader(elements.headers.value, "Content-Type", elements.contentType.value);
+  const formatted = HackBarRequestTools.formatBodyForContentType(elements.body.value, elements.contentType.value);
+  if (formatted.formatted) {
+    elements.body.value = formatted.body;
+    recordEditorState();
+    setStatus(formatted.templated ? "Content-Type applied; body template inserted" : "Content-Type applied; body formatted", "ok");
+    return;
+  }
+  if (formatted.error) {
+    recordEditorState();
+    setStatus(`Content-Type applied; ${formatted.error}`, "error");
+    return;
+  }
+
+  recordEditorState();
+  setStatus("Content-Type applied", "ok");
+}
+
+function upsertHeader(input, name, value) {
+  const lines = input.split(/\r?\n/);
+  let updated = false;
+  const output = lines.map((line) => {
+    const separatorIndex = line.indexOf(":");
+    if (separatorIndex > 0 && line.slice(0, separatorIndex).trim().toLowerCase() === name.toLowerCase()) {
+      updated = true;
+      return `${name}: ${value}`;
+    }
+    return line;
+  }).filter((line) => line.trim());
+
+  if (!updated) {
+    output.push(`${name}: ${value}`);
+  }
+
+  return output.join("\n");
 }
 
 function highlightHeaders(headersText) {
@@ -383,6 +470,46 @@ function closeMenus(exceptMenu) {
   });
 }
 
+function handleKeyboardShortcut(event) {
+  if (event.key === "Escape") {
+    closeMenus();
+    return;
+  }
+
+  const key = event.key.toLowerCase();
+  const hasCommandModifier = event.metaKey || event.ctrlKey;
+  if (!hasCommandModifier || event.altKey) {
+    return;
+  }
+
+  // Ctrl/Cmd+Z and Ctrl/Cmd+Y cover app-driven textarea edits that native undo cannot see.
+  if (key === "z") {
+    const changed = event.shiftKey ? editorHistory.redo() : editorHistory.undo();
+    if (changed) {
+      event.preventDefault();
+      event.stopPropagation();
+      setStatus(event.shiftKey ? "Redone" : "Undone", "ok");
+    }
+    return;
+  }
+
+  if (key === "y") {
+    const changed = editorHistory.redo();
+    if (changed) {
+      event.preventDefault();
+      event.stopPropagation();
+      setStatus("Redone", "ok");
+    }
+    return;
+  }
+
+  if (key === "enter") {
+    event.preventDefault();
+    closeMenus();
+    sendRequest();
+  }
+}
+
 function setResponseTab(tabName) {
   elements.responseTabs.forEach((button) => {
     button.setAttribute("aria-selected", String(button.dataset.responseTab === tabName));
@@ -438,14 +565,16 @@ function splitUrl() {
     .join("\n");
   parsed.search = "";
 
-  if (elements.postData.checked) {
+  if (shouldShowBody(elements.method.value)) {
     elements.url.value = parsed.toString();
     elements.body.value = params;
-    setStatus(params ? "URL parameters copied to Post data" : "No query parameters", "ok");
+    recordEditorState();
+    setStatus(params ? "URL parameters copied to body" : "No query parameters", "ok");
     return;
   }
 
   elements.url.value = params ? `${parsed.toString()}?\n${params}` : parsed.toString();
+  recordEditorState();
   setStatus(params ? "URL parameters split in URL box" : "No query parameters", "ok");
 }
 
@@ -453,7 +582,8 @@ function clearAll() {
   elements.url.value = "";
   elements.headers.value = "";
   elements.body.value = "";
-  elements.postData.checked = false;
+  elements.method.value = "GET";
+  elements.contentType.value = "";
   elements.refererToggle.checked = false;
   elements.userAgentToggle.checked = false;
   elements.cookiesToggle.checked = false;
@@ -461,9 +591,10 @@ function clearAll() {
   elements.refererValue.value = "";
   elements.userAgentValue.value = "";
   elements.cookiesValue.value = "";
-  syncPostDataState();
+  syncMethodState();
   syncExtraFields();
   clearResponse();
+  recordEditorState();
   setStatus("Cleared", "ok");
 }
 
@@ -479,8 +610,17 @@ function normalizeSplitUrlInput(input) {
   return params ? `${base}?${params}` : base;
 }
 
-function syncPostDataState() {
-  elements.body.classList.toggle("is-disabled", !elements.postData.checked);
+function syncMethodState() {
+  const showBody = shouldShowBody(elements.method.value);
+  elements.body.classList.toggle("is-disabled", !showBody);
+}
+
+function shouldShowBody(method) {
+  return !["GET", "HEAD", "OPTIONS"].includes(String(method || "GET").toUpperCase());
+}
+
+function shouldSendBody(method) {
+  return shouldShowBody(method);
 }
 
 function syncExtraFields() {
@@ -491,6 +631,71 @@ function syncExtraFields() {
     "has-visible",
     elements.refererToggle.checked || elements.userAgentToggle.checked || elements.cookiesToggle.checked
   );
+}
+
+function recordEditorState() {
+  editorHistory.commit();
+}
+
+function captureRequestState() {
+  const activeKey = requestInputKeyByElement.get(document.activeElement)
+    || requestInputKeyByElement.get(lastTextTarget)
+    || "body";
+
+  return {
+    method: elements.method.value,
+    contentType: elements.contentType.value,
+    refererEnabled: elements.refererToggle.checked,
+    userAgentEnabled: elements.userAgentToggle.checked,
+    cookiesEnabled: elements.cookiesToggle.checked,
+    updatePage: elements.updatePage.checked,
+    inputs: Object.fromEntries(Object.entries(requestInputs).map(([key, target]) => [key, target.value])),
+    selections: Object.fromEntries(Object.entries(requestInputs).map(([key, target]) => [key, captureSelection(target)])),
+    activeKey
+  };
+}
+
+function restoreRequestState(state) {
+  Object.entries(requestInputs).forEach(([key, target]) => {
+    target.value = state.inputs && typeof state.inputs[key] === "string" ? state.inputs[key] : "";
+  });
+
+  elements.method.value = state.method || "GET";
+  elements.contentType.value = state.contentType || "";
+  elements.refererToggle.checked = Boolean(state.refererEnabled);
+  elements.userAgentToggle.checked = Boolean(state.userAgentEnabled);
+  elements.cookiesToggle.checked = Boolean(state.cookiesEnabled);
+  elements.updatePage.checked = Boolean(state.updatePage);
+  syncMethodState();
+  syncExtraFields();
+
+  const target = requestInputs[state.activeKey] || elements.body;
+  if (textTargets.includes(target)) {
+    lastTextTarget = target;
+  }
+  restoreSelection(target, state.selections && state.selections[state.activeKey]);
+  target.focus();
+}
+
+function captureSelection(target) {
+  if (typeof target.selectionStart !== "number" || typeof target.selectionEnd !== "number") {
+    return { start: 0, end: 0 };
+  }
+
+  return {
+    start: target.selectionStart,
+    end: target.selectionEnd
+  };
+}
+
+function restoreSelection(target, selection) {
+  if (!selection || typeof target.setSelectionRange !== "function") {
+    return;
+  }
+
+  const start = Math.min(Number(selection.start) || 0, target.value.length);
+  const end = Math.min(Number(selection.end) || 0, target.value.length);
+  target.setSelectionRange(start, end);
 }
 
 function getActiveTextTarget() {
@@ -512,9 +717,11 @@ function getSelectedText(target) {
 }
 
 function replaceText(target, value, replaceSelection) {
+  recordEditorState();
   if (!replaceSelection) {
     target.value = value;
     target.focus();
+    recordEditorState();
     return;
   }
 
@@ -524,6 +731,7 @@ function replaceText(target, value, replaceSelection) {
   target.selectionStart = start;
   target.selectionEnd = start + value.length;
   target.focus();
+  recordEditorState();
 }
 
 function setBusy(isBusy) {

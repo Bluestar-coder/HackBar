@@ -12,24 +12,45 @@
         <details class="menu">
           <summary>Encryption</summary>
           <div class="menu-popover">
-            <button type="button" data-tool="base64-encode">Base64 Encode</button>
-            <button type="button" data-tool="base64-decode">Base64 Decode</button>
+            <span class="menu-section">Hash</span>
             <button type="button" data-tool="md5">MD5</button>
             <button type="button" data-tool="sha1">SHA-1</button>
             <button type="button" data-tool="sha256">SHA-256</button>
+            <button type="button" data-tool="sha384">SHA-384</button>
+            <button type="button" data-tool="sha512">SHA-512</button>
           </div>
         </details>
         <details class="menu">
           <summary>Encoding</summary>
           <div class="menu-popover">
+            <span class="menu-section">URL</span>
             <button type="button" data-tool="url-encode">URL Encode</button>
             <button type="button" data-tool="url-decode">URL Decode</button>
+            <button type="button" data-tool="url-encode-all">URL Encode All</button>
+            <button type="button" data-tool="url-decode-plus">Form URL Decode</button>
+            <span class="menu-section">Base64</span>
+            <button type="button" data-tool="base64-encode">Base64 Encode</button>
+            <button type="button" data-tool="base64-decode">Base64 Decode</button>
+            <button type="button" data-tool="base64url-encode">Base64URL Encode</button>
+            <button type="button" data-tool="base64url-decode">Base64URL Decode</button>
+            <span class="menu-section">HTML</span>
             <button type="button" data-tool="html-encode">HTML Encode</button>
             <button type="button" data-tool="html-decode">HTML Decode</button>
+            <button type="button" data-tool="html-decimal-encode">HTML Decimal Encode</button>
+            <button type="button" data-tool="html-hex-encode">HTML Hex Encode</button>
+            <span class="menu-section">Binary</span>
             <button type="button" data-tool="hex-encode">Hex Encode</button>
             <button type="button" data-tool="hex-decode">Hex Decode</button>
+            <button type="button" data-tool="binary-encode">Binary Encode</button>
+            <button type="button" data-tool="binary-decode">Binary Decode</button>
             <button type="button" data-tool="unicode-encode">Unicode Encode</button>
             <button type="button" data-tool="unicode-decode">Unicode Decode</button>
+            <button type="button" data-tool="charcode-encode">Char Code Encode</button>
+            <button type="button" data-tool="charcode-decode">Char Code Decode</button>
+            <span class="menu-section">Text</span>
+            <button type="button" data-tool="json-escape">JSON Escape</button>
+            <button type="button" data-tool="json-unescape">JSON Unescape</button>
+            <button type="button" data-tool="rot13">ROT13</button>
           </div>
         </details>
         <details class="menu">
@@ -150,7 +171,27 @@
           <textarea id="url" class="url-box" spellcheck="false" autocomplete="off" aria-label="URL"></textarea>
 
           <div class="option-row" aria-label="Request options">
-            <label><input id="postData" type="checkbox"> Post data</label>
+            <label class="option-field method-field"><span>Method</span>
+              <select id="method" aria-label="HTTP method">
+                <option>GET</option>
+                <option>POST</option>
+                <option>PUT</option>
+                <option>PATCH</option>
+                <option>DELETE</option>
+                <option>HEAD</option>
+                <option>OPTIONS</option>
+              </select>
+            </label>
+            <label class="option-field content-type-field"><span>Content-Type</span>
+              <select id="contentType" aria-label="Content-Type shortcut">
+                <option value="">Custom</option>
+                <option value="application/x-www-form-urlencoded">Form</option>
+                <option value="application/json">JSON</option>
+                <option value="text/plain">Text</option>
+                <option value="application/xml">XML</option>
+                <option value="multipart/form-data; boundary=----HackBarBoundary">File upload</option>
+              </select>
+            </label>
             <label><input id="refererToggle" type="checkbox"> Referer</label>
             <label><input id="userAgentToggle" type="checkbox"> User Agent</label>
             <label><input id="cookiesToggle" type="checkbox"> Cookies</label>
@@ -173,7 +214,7 @@
             </label>
           </div>
 
-          <textarea id="body" class="post-box" spellcheck="false" aria-label="Post data"></textarea>
+          <textarea id="body" class="post-box" spellcheck="false" aria-label="Request body"></textarea>
 
           <details class="advanced">
             <summary>Headers</summary>
@@ -193,13 +234,19 @@
           <div class="response-actions">
             <button id="toggleResponse" type="button" class="toggle-response" aria-expanded="true">Collapse</button>
             <div class="response-tabs" role="tablist" aria-label="Response views">
-              <button id="responseBodyTab" type="button" data-response-tab="body" aria-selected="true">Body</button>
+              <button id="responseRawTab" type="button" data-response-tab="raw" aria-selected="true">Raw</button>
+              <button id="responseBodyTab" type="button" data-response-tab="body" aria-selected="false">Body</button>
               <button id="responseHeadersTab" type="button" data-response-tab="headers" aria-selected="false">Headers</button>
             </div>
           </div>
         </div>
         <div class="response-panels">
-          <div class="field response-panel is-active" data-response-panel="body">
+          <div class="field response-panel is-active" data-response-panel="raw">
+            <span>Raw Response</span>
+            <textarea id="responseRaw" readonly spellcheck="false"></textarea>
+            <pre id="responseRawView" class="response-code" aria-label="Raw HTTP response"></pre>
+          </div>
+          <div class="field response-panel" data-response-panel="body">
             <div class="response-panel-title">
               <span>Response Body</span>
               <span class="body-view-tabs" role="tablist" aria-label="Body views">
@@ -220,6 +267,7 @@
       </section>
     </main>
 
+    <script src="editor-history.js"></script>
     <script src="page-update.js"></script>
     <script src="request-tools.js"></script>
     <script src="response-format.js"></script>

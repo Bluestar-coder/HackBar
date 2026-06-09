@@ -49,6 +49,19 @@
     return escapeHtml(text);
   }
 
+  function formatHttpResponse(result) {
+    const status = Number(result && result.status) || 0;
+    const statusText = String(result && result.statusText ? result.statusText : "").trim();
+    const statusLine = `HTTP/1.1 ${status}${statusText ? ` ${statusText}` : ""}`;
+    const headers = formatHeaderLines(result && result.headers);
+    const body = String(result && result.body ? result.body : "");
+    return [statusLine, ...headers, "", body].join("\n");
+  }
+
+  function formatHeaderLines(headers) {
+    return Object.entries(headers || {}).map(([name, value]) => `${name}: ${value}`);
+  }
+
   function getContentType(headers) {
     const source = headers || {};
     const match = Object.keys(source).find((name) => name.toLowerCase() === "content-type");
@@ -465,6 +478,7 @@
 
   return {
     formatResponseBody,
+    formatHttpResponse,
     formatHtml,
     highlightResponseBody,
     wrapLongLines,

@@ -1,5 +1,9 @@
 const assert = require("node:assert");
-const { formatResponseBody, highlightResponseBody, wrapLongLines } = require("../response-format");
+const fs = require("node:fs");
+const path = require("node:path");
+const { formatResponseBody, formatHttpResponse, highlightResponseBody, wrapLongLines } = require("../response-format");
+
+const panelHtml = fs.readFileSync(path.join(__dirname, "..", "panel.html"), "utf8");
 
 const json = formatResponseBody('{"name":"HackBar","items":[1,2]}', {
   "content-type": "application/json"
@@ -56,5 +60,30 @@ assert.ok(Math.max(...wrapped.split("\n").map((line) => line.length)) <= 140);
 
 const highlightedText = highlightResponseBody("a < b", "text");
 assert.strictEqual(highlightedText, "a &lt; b");
+
+const httpResponse = formatHttpResponse({
+  status: 200,
+  statusText: "OK",
+  headers: {
+    "server": "nginx/1.26.2",
+    "content-type": "application/json",
+    "x-frame-options": "DENY"
+  },
+  body: '{"success":true}'
+});
+assert.strictEqual(
+  httpResponse,
+  [
+    "HTTP/1.1 200 OK",
+    "server: nginx/1.26.2",
+    "content-type: application/json",
+    "x-frame-options: DENY",
+    "",
+    '{"success":true}'
+  ].join("\n")
+);
+
+assert.ok(panelHtml.includes('data-response-tab="raw"'), "Raw response tab is required");
+assert.ok(panelHtml.includes('id="responseRaw"'), "Raw response textarea is required");
 
 console.log("response format tests passed");
